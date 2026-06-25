@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# 环境变量
+.env
+.env.*
+!.env.example
+.env.docker
+
+# 文档
+*.md
+!README.md
+
+# 构建产物
+/bin/
+/out/
+*.exe
+*.test
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 脚本
+*.ps1

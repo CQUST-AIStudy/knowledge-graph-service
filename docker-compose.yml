@@ -1,0 +1,33 @@
+# 知识图谱服务 Docker Compose
+# 连接远程 MySQL/Redis，不内置数据库容器
+
+services:
+  knowledge-graph-api:
+    build: .
+    image: knowledge-graph-service:local
+    restart: unless-stopped
+    environment:
+      KG_ADDR: ":10171"
+      KG_CORS_ORIGINS: ${KG_CORS_ORIGINS:-*}
+      KG_DB_REQUIRED: ${KG_DB_REQUIRED:-false}
+      DB_HOST: ${DB_HOST:-127.0.0.1}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-ptadatabase}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD:?please set DB_PASSWORD}
+      KG_REDIS_ENABLED: ${KG_REDIS_ENABLED:-false}
+      KG_REDIS_ADDR: ${KG_REDIS_ADDR:-127.0.0.1:6379}
+      KG_REDIS_PASSWORD: ${KG_REDIS_PASSWORD:-}
+      KG_REDIS_DB: ${KG_REDIS_DB:-0}
+      KG_CACHE_TTL: ${KG_CACHE_TTL:-300s}
+      TZ: Asia/Shanghai
+    ports:
+      - "${KG_HOST_BIND:-127.0.0.1}:${KG_HOST_PORT:-10171}:10171"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:10171/ready || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3

@@ -177,8 +177,47 @@ VALUES
 
 -- ==================== TESTED_BY 关系（结构/算法→练习） ====================
 INSERT IGNORE INTO kg_relation (graph_id, relation_id, source, target, type, properties_json)
-SELECT @gid, CONCAT(node_id, '__TESTED_BY__', 'ds-ex-' , JSON_UNQUOTE(JSON_EXTRACT(properties_json, '$.experimentId'))), node_id, CONCAT('ds-ex-', JSON_UNQUOTE(JSON_EXTRACT(properties_json, '$.experimentId'))), 'TESTED_BY', JSON_OBJECT('kind','exercise-link')
-FROM kg_node WHERE graph_id = @gid AND type = 'exercise' AND JSON_UNQUOTE(JSON_EXTRACT(properties_json, '$.experimentId')) IS NOT NULL;
+VALUES
+(@gid, 'ds-struct-seqlist__TESTED_BY__ds-ex-1', 'ds-struct-seqlist', 'ds-ex-1', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-seqlist__TESTED_BY__ds-ex-2', 'ds-struct-seqlist', 'ds-ex-2', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-insert__TESTED_BY__ds-ex-2', 'ds-algo-insert', 'ds-ex-2', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-delete__TESTED_BY__ds-ex-2', 'ds-algo-delete', 'ds-ex-2', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-linkedlist__TESTED_BY__ds-ex-3', 'ds-struct-linkedlist', 'ds-ex-3', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-linkedlist__TESTED_BY__ds-ex-4', 'ds-struct-linkedlist', 'ds-ex-4', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-insert__TESTED_BY__ds-ex-4', 'ds-algo-insert', 'ds-ex-4', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-delete__TESTED_BY__ds-ex-4', 'ds-algo-delete', 'ds-ex-4', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-linkedlist__TESTED_BY__ds-ex-5', 'ds-struct-linkedlist', 'ds-ex-5', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-search__TESTED_BY__ds-ex-5', 'ds-algo-search', 'ds-ex-5', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-dlist__TESTED_BY__ds-ex-6', 'ds-struct-dlist', 'ds-ex-6', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-clist__TESTED_BY__ds-ex-6', 'ds-struct-clist', 'ds-ex-6', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-dlist__TESTED_BY__ds-ex-7', 'ds-struct-dlist', 'ds-ex-7', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-clist__TESTED_BY__ds-ex-7', 'ds-struct-clist', 'ds-ex-7', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-seqstack__TESTED_BY__ds-ex-8', 'ds-struct-seqstack', 'ds-ex-8', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-pushpop__TESTED_BY__ds-ex-8', 'ds-algo-pushpop', 'ds-ex-8', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-circqueue__TESTED_BY__ds-ex-9', 'ds-struct-circqueue', 'ds-ex-9', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-enqdeq__TESTED_BY__ds-ex-9', 'ds-algo-enqdeq', 'ds-ex-9', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-bst__TESTED_BY__ds-ex-10', 'ds-struct-bst', 'ds-ex-10', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-search__TESTED_BY__ds-ex-10', 'ds-algo-search', 'ds-ex-10', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-btree__TESTED_BY__ds-ex-11', 'ds-struct-btree', 'ds-ex-11', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-preorder__TESTED_BY__ds-ex-11', 'ds-algo-preorder', 'ds-ex-11', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-inorder__TESTED_BY__ds-ex-11', 'ds-algo-inorder', 'ds-ex-11', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-postorder__TESTED_BY__ds-ex-11', 'ds-algo-postorder', 'ds-ex-11', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-levelorder__TESTED_BY__ds-ex-11', 'ds-algo-levelorder', 'ds-ex-11', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-huffman__TESTED_BY__ds-ex-12', 'ds-struct-huffman', 'ds-ex-12', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-huffman-encode__TESTED_BY__ds-ex-12', 'ds-algo-huffman-encode', 'ds-ex-12', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-hashtable__TESTED_BY__ds-ex-13', 'ds-struct-hashtable', 'ds-ex-13', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-hashfunc__TESTED_BY__ds-ex-13', 'ds-algo-hashfunc', 'ds-ex-13', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-collision__TESTED_BY__ds-ex-13', 'ds-algo-collision', 'ds-ex-13', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-adjmatrix__TESTED_BY__ds-ex-14', 'ds-struct-adjmatrix', 'ds-ex-14', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-adjlist__TESTED_BY__ds-ex-14', 'ds-struct-adjlist', 'ds-ex-14', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-dfs__TESTED_BY__ds-ex-14', 'ds-algo-dfs', 'ds-ex-14', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-bfs__TESTED_BY__ds-ex-14', 'ds-algo-bfs', 'ds-ex-14', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-seqstack__TESTED_BY__ds-ex-15', 'ds-struct-seqstack', 'ds-ex-15', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-pushpop__TESTED_BY__ds-ex-15', 'ds-algo-pushpop', 'ds-ex-15', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-dijkstra__TESTED_BY__ds-ex-16', 'ds-algo-dijkstra', 'ds-ex-16', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-algo-prim__TESTED_BY__ds-ex-16', 'ds-algo-prim', 'ds-ex-16', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-seqlist__TESTED_BY__ds-ex-17', 'ds-struct-seqlist', 'ds-ex-17', 'TESTED_BY', JSON_OBJECT('kind','exercise-link')),
+(@gid, 'ds-struct-linkedlist__TESTED_BY__ds-ex-17', 'ds-struct-linkedlist', 'ds-ex-17', 'TESTED_BY', JSON_OBJECT('kind','exercise-link'));
 
 -- ==================== RELATED_TO 关系 ====================
 INSERT IGNORE INTO kg_relation (graph_id, relation_id, source, target, type, properties_json)

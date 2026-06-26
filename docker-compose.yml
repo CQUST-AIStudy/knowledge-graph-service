@@ -10,6 +10,7 @@ services:
       KG_ADDR: ":10171"
       KG_CORS_ORIGINS: ${KG_CORS_ORIGINS:-*}
       KG_DB_REQUIRED: ${KG_DB_REQUIRED:-false}
+      KG_SEED_ENABLED: ${KG_SEED_ENABLED:-true}
       DB_HOST: ${DB_HOST:-127.0.0.1}
       DB_PORT: ${DB_PORT:-3306}
       DB_NAME: ${DB_NAME:-ptadatabase}

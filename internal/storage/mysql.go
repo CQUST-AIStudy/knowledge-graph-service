@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -17,6 +18,8 @@ import (
 type Store struct {
 	db *sql.DB
 }
+
+const defaultGraphCode = "data-structure-knowledge-graph"
 
 // NewMySQLStore 创建并返回一个 MySQL 存储实例。
 func NewMySQLStore(dsn string) (*Store, error) {
@@ -65,7 +68,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 			created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			UNIQUE KEY uk_graph_code (graph_code)
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 		`CREATE TABLE IF NOT EXISTS kg_node (
 			id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
 			graph_id            BIGINT NOT NULL,
@@ -86,7 +89,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 			INDEX idx_graph (graph_id),
 			INDEX idx_type (graph_id, type),
 			INDEX idx_chapter (graph_id, chapter_id)
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 		`CREATE TABLE IF NOT EXISTS kg_relation (
 			id              BIGINT AUTO_INCREMENT PRIMARY KEY,
 			graph_id        BIGINT NOT NULL,
@@ -100,7 +103,7 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 			INDEX idx_graph (graph_id),
 			INDEX idx_source (graph_id, source),
 			INDEX idx_target (graph_id, target)
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 	}
 	for _, ddl := range tables {
 		if _, err := s.db.ExecContext(ctx, ddl); err != nil {
@@ -108,6 +111,75 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// EnsureDefaultGraphSeed 在默认图谱缺失或为空时导入内置种子数据。
+func (s *Store) EnsureDefaultGraphSeed(ctx context.Context, script string) (bool, error) {
+	if s == nil || s.db == nil {
+		return false, errors.New("mysql: store is nil")
+	}
+	if strings.TrimSpace(script) == "" {
+		return false, errors.New("mysql: seed script is empty")
+	}
+
+	graphID, err := s.GetGraphIDByCode(ctx, defaultGraphCode)
+	if err != nil {
+		return false, fmt.Errorf("mysql: check default graph: %w", err)
+	}
+	if graphID != 0 {
+		var nodeCount int
+		if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM kg_node WHERE graph_id = ?`, graphID).Scan(&nodeCount); err != nil {
+			return false, fmt.Errorf("mysql: count default graph nodes: %w", err)
+		}
+		if nodeCount > 0 {
+			return false, nil
+		}
+	}
+
+	if err := s.execSQLScript(ctx, script); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *Store) execSQLScript(ctx context.Context, script string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("mysql: begin seed tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	statements := splitSQLStatements(stripSQLLineComments(script))
+	for i, statement := range statements {
+		if _, err := tx.ExecContext(ctx, statement); err != nil {
+			return fmt.Errorf("mysql: execute seed statement %d: %w", i+1, err)
+		}
+	}
+	return tx.Commit()
+}
+
+func stripSQLLineComments(script string) string {
+	var b strings.Builder
+	for _, line := range strings.Split(script, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "--") {
+			continue
+		}
+		b.WriteString(line)
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+func splitSQLStatements(script string) []string {
+	parts := strings.Split(script, ";")
+	statements := make([]string, 0, len(parts))
+	for _, part := range parts {
+		statement := strings.TrimSpace(part)
+		if statement != "" {
+			statements = append(statements, statement)
+		}
+	}
+	return statements
 }
 
 // ==================== 图谱 CRUD ====================

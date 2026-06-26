@@ -20,11 +20,12 @@ type Config struct {
 
 	CORSOrigins []string
 
-	Database   DatabaseConfig
-	DBRequired bool
+	Database    DatabaseConfig
+	DBRequired  bool
+	SeedEnabled bool
 
-	Redis  RedisConfig
-	Cache  CacheConfig
+	Redis RedisConfig
+	Cache CacheConfig
 }
 
 // DatabaseConfig 描述 MySQL 连接参数。
@@ -75,6 +76,7 @@ func Load() (*Config, error) {
 		WriteTimeout: getDurationEnv("KG_WRITE_TIMEOUT", 30*time.Second),
 		CORSOrigins:  getCSVEnv("KG_CORS_ORIGINS", []string{"*"}),
 		DBRequired:   getBoolEnv("KG_DB_REQUIRED", false),
+		SeedEnabled:  getBoolEnv("KG_SEED_ENABLED", true),
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "127.0.0.1"),
 			Port:     getEnv("DB_PORT", "3306"),
@@ -237,7 +239,7 @@ func firstNonEmpty(values ...string) string {
 
 // String 返回配置的可读摘要（不含密码）。
 func (c *Config) String() string {
-	return fmt.Sprintf("Config{Addr:%s, DB:%s:%s/%s, DBRequired:%v, Redis:%s(enabled:%v), CacheTTL:%v, CORS:%v}",
+	return fmt.Sprintf("Config{Addr:%s, DB:%s:%s/%s, DBRequired:%v, SeedEnabled:%v, Redis:%s(enabled:%v), CacheTTL:%v, CORS:%v}",
 		c.Addr, c.Database.Host, c.Database.Port, c.Database.Name,
-		c.DBRequired, c.Redis.Addr, c.Redis.Enabled, c.Cache.TTL, c.CORSOrigins)
+		c.DBRequired, c.SeedEnabled, c.Redis.Addr, c.Redis.Enabled, c.Cache.TTL, c.CORSOrigins)
 }

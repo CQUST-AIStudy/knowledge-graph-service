@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	seeddata "knowledgegraph/deploy/mysql/init"
 	"knowledgegraph/internal/api"
 	"knowledgegraph/internal/config"
 	"knowledgegraph/internal/storage"
@@ -32,6 +33,7 @@ func main() {
 			// Ping
 			pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			if err := candidate.Ping(pingCtx); err != nil {
+				pingCancel()
 				log.Printf("mysql: ping failed: %v", err)
 				_ = candidate.Close()
 				candidate = nil
@@ -40,11 +42,27 @@ func main() {
 				// EnsureSchema
 				schemaCtx, schemaCancel := context.WithTimeout(context.Background(), 10*time.Second)
 				if err := candidate.EnsureSchema(schemaCtx); err != nil {
+					schemaCancel()
 					log.Printf("mysql: ensure schema failed: %v", err)
 					_ = candidate.Close()
 					candidate = nil
 				} else {
 					schemaCancel()
+					if cfg.SeedEnabled {
+						seedCtx, seedCancel := context.WithTimeout(context.Background(), 20*time.Second)
+						seeded, err := candidate.EnsureDefaultGraphSeed(seedCtx, seeddata.DataStructureGraphSQL)
+						seedCancel()
+						if err != nil {
+							log.Printf("mysql: seed default graph failed: %v", err)
+							if cfg.DBRequired {
+								log.Fatalf("mysql: DB_REQUIRED=true but default graph seed failed")
+							}
+						} else if seeded {
+							log.Printf("mysql: default data-structure graph seeded")
+						} else {
+							log.Printf("mysql: default data-structure graph already available")
+						}
+					}
 					log.Printf("mysql: connected and schema ready")
 				}
 			}

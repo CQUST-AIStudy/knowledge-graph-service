@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS kg_graph (
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_graph_code (graph_code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 节点表
 CREATE TABLE IF NOT EXISTS kg_node (
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS kg_node (
     INDEX idx_graph (graph_id),
     INDEX idx_type (graph_id, type),
     INDEX idx_chapter (graph_id, chapter_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 关系表
 CREATE TABLE IF NOT EXISTS kg_relation (
@@ -55,4 +55,4 @@ CREATE TABLE IF NOT EXISTS kg_relation (
     INDEX idx_graph (graph_id),
     INDEX idx_source (graph_id, source),
     INDEX idx_target (graph_id, target)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

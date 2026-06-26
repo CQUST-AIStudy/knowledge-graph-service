@@ -23,7 +23,7 @@ services:
       KG_CACHE_TTL: ${KG_CACHE_TTL:-300s}
       TZ: Asia/Shanghai
     ports:
-      - "${KG_HOST_BIND:-127.0.0.1}:${KG_HOST_PORT:-10171}:10171"
+      - "${KG_HOST_BIND:-0.0.0.0}:${KG_HOST_PORT:-10171}:10171"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

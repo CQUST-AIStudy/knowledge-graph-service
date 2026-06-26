@@ -16,10 +16,35 @@ import (
 
 // Store 封装 MySQL 数据访问。
 type Store struct {
-	db *sql.DB
+	db                     *sql.DB
+	progressCompletionSQL  string
+	progressCompletionArgs []string
 }
 
 const defaultGraphCode = "data-structure-knowledge-graph"
+
+const defaultProgressCompletionSQL = `
+SELECT DISTINCT
+	CASE
+		WHEN ao.source_system = 'LEGACY_TAP'
+			AND ao.source_offering_key LIKE 'LEGACY_EXPERIMENT_OFFERING:%'
+		THEN CAST(CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(ao.source_offering_key, ':CLASS:', 1), ':', -1) AS SIGNED) AS CHAR)
+		ELSE CAST(sa.offering_id AS CHAR)
+	END AS exercise_key
+FROM student_assignment sa
+JOIN student_profile sp ON sp.id = sa.student_id
+JOIN assignment_offering ao ON ao.id = sa.offering_id
+WHERE (
+	sp.student_no = ?
+	OR CAST(sp.id AS CHAR) = ?
+	OR CAST(sp.user_id AS CHAR) = ?
+)
+AND (
+	LOWER(COALESCE(sa.submission_status, '')) IN ('graded', 'submitted', 'closed')
+	OR COALESCE(sa.completion_evidence, 'NONE') IN ('TRANSCRIPT_SCORE', 'ANSWER_SHEET', 'SCORED_CODE')
+)`
+
+var defaultProgressCompletionArgs = []string{"userId", "userId", "userId"}
 
 // NewMySQLStore 创建并返回一个 MySQL 存储实例。
 func NewMySQLStore(dsn string) (*Store, error) {
@@ -34,6 +59,15 @@ func NewMySQLStore(dsn string) (*Store, error) {
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(30 * time.Minute)
 	return &Store{db: db}, nil
+}
+
+// ConfigureProgressCompletionQuery 配置用户进度的只读完成记录查询。
+func (s *Store) ConfigureProgressCompletionQuery(query string, args []string) {
+	if s == nil {
+		return
+	}
+	s.progressCompletionSQL = strings.TrimSpace(query)
+	s.progressCompletionArgs = normalizeProgressArgTokens(args)
 }
 
 // Close 关闭数据库连接。
@@ -281,6 +315,83 @@ func (s *Store) GetGraph(ctx context.Context, graphCode string) (*graph.Graph, e
 	}
 
 	return g, nil
+}
+
+// GetGraphProgress 获取指定用户在图谱上的学习进度。
+func (s *Store) GetGraphProgress(ctx context.Context, graphCode, userID string) (*graph.GraphProgress, error) {
+	g, err := s.GetGraph(ctx, graphCode)
+	if err != nil {
+		return nil, err
+	}
+	if g == nil {
+		return nil, nil
+	}
+	keys, source, err := s.QueryCompletedExerciseKeys(ctx, graphCode, userID)
+	if err != nil {
+		return nil, err
+	}
+	return graph.ComputeProgress(graphCode, g, userID, keys, source), nil
+}
+
+// GetGraphWithProgress 获取图谱并在节点上附加指定用户的学习进度。
+func (s *Store) GetGraphWithProgress(ctx context.Context, graphCode, userID string) (*graph.Graph, error) {
+	g, err := s.GetGraph(ctx, graphCode)
+	if err != nil {
+		return nil, err
+	}
+	if g == nil {
+		return nil, nil
+	}
+	keys, source, err := s.QueryCompletedExerciseKeys(ctx, graphCode, userID)
+	if err != nil {
+		return nil, err
+	}
+	progress := graph.ComputeProgress(graphCode, g, userID, keys, source)
+	graph.ApplyProgressToGraph(g, progress)
+	return g, nil
+}
+
+// QueryCompletedExerciseKeys 读取用户已完成练习标识；返回值可匹配 exercise node_id 或 properties.experimentId。
+func (s *Store) QueryCompletedExerciseKeys(ctx context.Context, graphCode, userID string) ([]string, string, error) {
+	if s == nil || s.db == nil {
+		return nil, "", errors.New("mysql: store is nil")
+	}
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, "", errors.New("mysql: userId is required")
+	}
+	query, argTokens, source := s.progressCompletionQuery()
+	args, err := buildProgressQueryArgs(argTokens, graphCode, userID)
+	if err != nil {
+		return nil, source, err
+	}
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, source, fmt.Errorf("mysql: query completed exercise keys: %w", err)
+	}
+	defer rows.Close()
+
+	keys := make([]string, 0)
+	seen := map[string]struct{}{}
+	for rows.Next() {
+		var key sql.NullString
+		if err := rows.Scan(&key); err != nil {
+			return nil, source, fmt.Errorf("mysql: scan completed exercise key: %w", err)
+		}
+		value := strings.TrimSpace(key.String)
+		if !key.Valid || value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		keys = append(keys, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, source, fmt.Errorf("mysql: iterate completed exercise keys: %w", err)
+	}
+	return keys, source, nil
 }
 
 // CreateGraph 创建图谱并批量写入节点和关系（事务）。
@@ -865,4 +976,44 @@ func (s *Store) batchInsertRelations(ctx context.Context, tx *sql.Tx, graphID in
 		count++
 	}
 	return count, nil
+}
+
+func (s *Store) progressCompletionQuery() (string, []string, string) {
+	if s != nil && s.progressCompletionSQL != "" {
+		args := s.progressCompletionArgs
+		if len(args) == 0 {
+			args = []string{"userId"}
+		}
+		return s.progressCompletionSQL, args, "custom_sql"
+	}
+	return defaultProgressCompletionSQL, defaultProgressCompletionArgs, "student_assignment"
+}
+
+func normalizeProgressArgTokens(args []string) []string {
+	if len(args) == 0 {
+		return nil
+	}
+	result := make([]string, 0, len(args))
+	for _, arg := range args {
+		arg = strings.TrimSpace(arg)
+		if arg != "" {
+			result = append(result, arg)
+		}
+	}
+	return result
+}
+
+func buildProgressQueryArgs(tokens []string, graphCode, userID string) ([]any, error) {
+	args := make([]any, 0, len(tokens))
+	for _, token := range tokens {
+		switch strings.ToLower(strings.TrimSpace(token)) {
+		case "userid", "user_id", "studentid", "student_id":
+			args = append(args, userID)
+		case "graphcode", "graph_code":
+			args = append(args, graphCode)
+		default:
+			return nil, fmt.Errorf("mysql: unsupported progress query arg token %q", token)
+		}
+	}
+	return args, nil
 }

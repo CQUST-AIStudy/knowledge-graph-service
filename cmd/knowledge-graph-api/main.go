@@ -30,6 +30,7 @@ func main() {
 		if err != nil {
 			log.Printf("mysql: connect failed: %v", err)
 		} else {
+			candidate.ConfigureProgressCompletionQuery(cfg.Progress.CompletionSQL, cfg.Progress.CompletionSQLArgs)
 			// Ping
 			pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			if err := candidate.Ping(pingCtx); err != nil {

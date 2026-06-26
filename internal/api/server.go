@@ -10,10 +10,10 @@ import (
 
 // Server 持有 HTTP 路由和依赖。
 type Server struct {
-	store        *storage.Store
-	cache        *storage.CacheClient
-	corsOrigins  []string
-	allowAll     bool
+	store       *storage.Store
+	cache       *storage.CacheClient
+	corsOrigins []string
+	allowAll    bool
 }
 
 // NewServer 创建 Server 实例。
@@ -49,6 +49,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("DELETE /api/graphs/{graphCode}", s.handleDeleteGraph)
 	mux.HandleFunc("GET /api/graphs/{graphCode}/validate", s.handleValidateGraph)
 	mux.HandleFunc("GET /api/graphs/{graphCode}/stats", s.handleGraphStats)
+	mux.HandleFunc("GET /api/graphs/{graphCode}/progress", s.handleGraphProgress)
 
 	// 节点 CRUD
 	mux.HandleFunc("GET /api/graphs/{graphCode}/nodes/{nodeId}", s.handleGetNode)

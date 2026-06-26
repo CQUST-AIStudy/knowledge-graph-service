@@ -58,9 +58,10 @@ func (s *Server) handleGetGraph(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid graphCode")
 		return
 	}
+	userID := strings.TrimSpace(r.URL.Query().Get("userId"))
 
 	// 先查缓存
-	if s.cache != nil && s.cache.IsEnabled() {
+	if userID == "" && s.cache != nil && s.cache.IsEnabled() {
 		if cached, err := s.cache.GetGraphJSON(r.Context(), graphCode); err == nil && cached != "" && cached != "null" {
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.Header().Set("X-Cache", "hit")
@@ -75,7 +76,15 @@ func (s *Server) handleGetGraph(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g, err := s.store.GetGraph(r.Context(), graphCode)
+	var (
+		g   *graph.Graph
+		err error
+	)
+	if userID == "" {
+		g, err = s.store.GetGraph(r.Context(), graphCode)
+	} else {
+		g, err = s.store.GetGraphWithProgress(r.Context(), graphCode, userID)
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to get graph: "+err.Error())
 		return
@@ -86,7 +95,7 @@ func (s *Server) handleGetGraph(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 写缓存
-	if s.cache != nil && s.cache.IsEnabled() {
+	if userID == "" && s.cache != nil && s.cache.IsEnabled() {
 		if data, err := json.Marshal(g); err == nil {
 			_ = s.cache.SetGraphJSON(r.Context(), graphCode, data)
 		}
@@ -139,12 +148,12 @@ func (s *Server) handleCreateGraph(w http.ResponseWriter, r *http.Request) {
 	s.invalidateCache(r.Context(), payload.GraphCode)
 
 	writeJSON(w, http.StatusCreated, map[string]any{
-		"success":        true,
-		"graphCode":      payload.GraphCode,
-		"version":        payload.Version,
-		"graphId":        graphID,
-		"nodeCount":      nodeCount,
-		"relationCount":  relCount,
+		"success":       true,
+		"graphCode":     payload.GraphCode,
+		"version":       payload.Version,
+		"graphId":       graphID,
+		"nodeCount":     nodeCount,
+		"relationCount": relCount,
 	})
 }
 
@@ -268,6 +277,39 @@ func (s *Server) handleGraphStats(w http.ResponseWriter, r *http.Request) {
 
 	stats := graph.ComputeStats(g)
 	writeSuccess(w, stats)
+}
+
+// handleGraphProgress 获取用户在图谱上的学习进度。
+func (s *Server) handleGraphProgress(w http.ResponseWriter, r *http.Request) {
+	if s.store == nil {
+		writeError(w, http.StatusServiceUnavailable, "database unavailable")
+		return
+	}
+
+	graphCode := pathValue(r, "graphCode")
+	if !sanitizeGraphCode(graphCode) {
+		writeError(w, http.StatusBadRequest, "invalid graphCode")
+		return
+	}
+
+	userID := strings.TrimSpace(r.URL.Query().Get("userId"))
+	if userID == "" {
+		writeError(w, http.StatusBadRequest, "userId is required")
+		return
+	}
+
+	progress, err := s.store.GetGraphProgress(r.Context(), graphCode, userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get graph progress: "+err.Error())
+		return
+	}
+	if progress == nil {
+		writeError(w, http.StatusNotFound, "graph not found: "+graphCode)
+		return
+	}
+
+	w.Header().Set("X-Cache", "bypass")
+	writeSuccess(w, progress)
 }
 
 // ==================== 节点 CRUD ====================
@@ -469,8 +511,8 @@ func (s *Server) handleCreateRelation(w http.ResponseWriter, r *http.Request) {
 	s.invalidateCache(r.Context(), graphCode)
 
 	writeJSON(w, http.StatusCreated, map[string]any{
-		"success":     true,
-		"relationId":  relationID,
+		"success":    true,
+		"relationId": relationID,
 	})
 }
 

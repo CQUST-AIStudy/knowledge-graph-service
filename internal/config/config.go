@@ -24,8 +24,9 @@ type Config struct {
 	DBRequired  bool
 	SeedEnabled bool
 
-	Redis RedisConfig
-	Cache CacheConfig
+	Progress ProgressConfig
+	Redis    RedisConfig
+	Cache    CacheConfig
 }
 
 // DatabaseConfig 描述 MySQL 连接参数。
@@ -35,6 +36,12 @@ type DatabaseConfig struct {
 	Name     string
 	Username string
 	Password string
+}
+
+// ProgressConfig 描述用户学习进度对接配置。
+type ProgressConfig struct {
+	CompletionSQL     string
+	CompletionSQLArgs []string
 }
 
 // DSN 生成 go-sql-driver/mysql 格式的 DSN。
@@ -83,6 +90,10 @@ func Load() (*Config, error) {
 			Name:     getEnv("DB_NAME", "ptadatabase"),
 			Username: getEnv("DB_USERNAME", "root"),
 			Password: firstNonEmpty(os.Getenv("DB_PASSWORD"), os.Getenv("DB_PASS")),
+		},
+		Progress: ProgressConfig{
+			CompletionSQL:     getEnv("KG_PROGRESS_COMPLETION_SQL", ""),
+			CompletionSQLArgs: getCSVEnv("KG_PROGRESS_COMPLETION_SQL_ARGS", []string{}),
 		},
 		Redis: RedisConfig{
 			Addr:     getEnv("KG_REDIS_ADDR", "127.0.0.1:6379"),

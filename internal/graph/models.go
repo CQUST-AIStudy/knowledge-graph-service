@@ -18,16 +18,21 @@ type Graph struct {
 
 // Node 表示图谱中的一个节点。
 type Node struct {
-	ID            string          `json:"id"`
-	Label         string          `json:"label"`
-	Type          string          `json:"type"`
-	ChapterID     *string         `json:"chapterId,omitempty"`
-	Summary       string          `json:"summary,omitempty"`
-	Properties    MapRaw          `json:"properties,omitempty"`
-	Prerequisites []string        `json:"prerequisites,omitempty"`
-	Related       []string        `json:"related,omitempty"`
-	AppliesTo     []string        `json:"appliesTo,omitempty"`
-	Targets       []string        `json:"targets,omitempty"`
+	ID                     string   `json:"id"`
+	Label                  string   `json:"label"`
+	Type                   string   `json:"type"`
+	ChapterID              *string  `json:"chapterId,omitempty"`
+	Summary                string   `json:"summary,omitempty"`
+	Properties             MapRaw   `json:"properties,omitempty"`
+	Prerequisites          []string `json:"prerequisites,omitempty"`
+	Related                []string `json:"related,omitempty"`
+	AppliesTo              []string `json:"appliesTo,omitempty"`
+	Targets                []string `json:"targets,omitempty"`
+	ProgressPercent        *int     `json:"progressPercent,omitempty"`
+	LearningStatus         string   `json:"learningStatus,omitempty"`
+	LearningStatusLabel    string   `json:"learningStatusLabel,omitempty"`
+	CompletedExerciseCount *int     `json:"completedExerciseCount,omitempty"`
+	TotalExerciseCount     *int     `json:"totalExerciseCount,omitempty"`
 }
 
 // Relation 表示图谱中的一条关系。
@@ -41,13 +46,13 @@ type Relation struct {
 
 // Payload 表示前端 toGraphDbPayload 的输出格式，用于批量写入。
 type Payload struct {
-	GraphCode  string         `json:"graphCode"`
-	Version    string         `json:"version"`
-	Source     MapRaw         `json:"source"`
-	Metadata   MapRaw         `json:"metadata"`
-	Course     *Node          `json:"course"`
-	Nodes      []*Node        `json:"nodes"`
-	Relations  []*Relation    `json:"relations"`
+	GraphCode string      `json:"graphCode"`
+	Version   string      `json:"version"`
+	Source    MapRaw      `json:"source"`
+	Metadata  MapRaw      `json:"metadata"`
+	Course    *Node       `json:"course"`
+	Nodes     []*Node     `json:"nodes"`
+	Relations []*Relation `json:"relations"`
 }
 
 // GraphMeta 用于图谱列表展示。
@@ -62,24 +67,51 @@ type GraphMeta struct {
 
 // NodeContext 表示节点上下文（前端 getNodeContext 对应）。
 type NodeContext struct {
-	Node          *Node       `json:"node"`
-	AncestorChain []*Node     `json:"ancestorChain"`
-	Prerequisites []*Node     `json:"prerequisites"`
-	NextNodes     []*Node     `json:"nextNodes"`
-	RelatedNodes  []*Node     `json:"relatedNodes"`
-	Exercises     []*Node     `json:"exercises"`
+	Node          *Node   `json:"node"`
+	AncestorChain []*Node `json:"ancestorChain"`
+	Prerequisites []*Node `json:"prerequisites"`
+	NextNodes     []*Node `json:"nextNodes"`
+	RelatedNodes  []*Node `json:"relatedNodes"`
+	Exercises     []*Node `json:"exercises"`
 }
 
 // GraphStats 表示图谱统计信息。
 type GraphStats struct {
-	TotalNodes        int            `json:"totalNodes"`
-	TotalRelations    int            `json:"totalRelations"`
-	NodeTypeCounts    map[string]int `json:"nodeTypeCounts"`
+	TotalNodes         int            `json:"totalNodes"`
+	TotalRelations     int            `json:"totalRelations"`
+	NodeTypeCounts     map[string]int `json:"nodeTypeCounts"`
 	RelationTypeCounts map[string]int `json:"relationTypeCounts"`
-	ChapterCount      int            `json:"chapterCount"`
-	StructureCount    int            `json:"structureCount"`
-	AlgorithmCount    int            `json:"algorithmCount"`
-	ExerciseCount     int            `json:"exerciseCount"`
+	ChapterCount       int            `json:"chapterCount"`
+	StructureCount     int            `json:"structureCount"`
+	AlgorithmCount     int            `json:"algorithmCount"`
+	ExerciseCount      int            `json:"exerciseCount"`
+}
+
+// NodeProgress 表示单个节点的用户学习进度。
+type NodeProgress struct {
+	NodeID                 string   `json:"nodeId"`
+	NodeType               string   `json:"nodeType"`
+	ProgressPercent        int      `json:"progressPercent"`
+	LearningStatus         string   `json:"learningStatus"`
+	LearningStatusLabel    string   `json:"learningStatusLabel"`
+	CompletedExerciseCount int      `json:"completedExerciseCount"`
+	TotalExerciseCount     int      `json:"totalExerciseCount"`
+	ExerciseIDs            []string `json:"exerciseIds,omitempty"`
+	CompletedExerciseIDs   []string `json:"completedExerciseIds,omitempty"`
+}
+
+// GraphProgress 表示某个用户在图谱上的聚合学习进度。
+type GraphProgress struct {
+	GraphCode              string                   `json:"graphCode"`
+	UserID                 string                   `json:"userId"`
+	ProgressPercent        int                      `json:"progressPercent"`
+	LearningStatus         string                   `json:"learningStatus"`
+	LearningStatusLabel    string                   `json:"learningStatusLabel"`
+	CompletedExerciseCount int                      `json:"completedExerciseCount"`
+	TotalExerciseCount     int                      `json:"totalExerciseCount"`
+	Source                 string                   `json:"source"`
+	Nodes                  map[string]*NodeProgress `json:"nodes"`
+	UpdatedAt              time.Time                `json:"updatedAt"`
 }
 
 // ValidationResult 表示图谱校验结果。
@@ -92,42 +124,42 @@ type ValidationResult struct {
 
 // GraphRow 映射 kg_graph 表。
 type GraphRow struct {
-	ID            int64     `json:"-"`
-	GraphCode     string    `json:"graphCode"`
-	Version       string    `json:"version"`
-	SourceJSON    []byte    `json:"-"`
-	MetadataJSON  []byte    `json:"-"`
-	CourseNodeID  *string   `json:"-"`
-	CreatedAt     time.Time `json:"-"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID           int64     `json:"-"`
+	GraphCode    string    `json:"graphCode"`
+	Version      string    `json:"version"`
+	SourceJSON   []byte    `json:"-"`
+	MetadataJSON []byte    `json:"-"`
+	CourseNodeID *string   `json:"-"`
+	CreatedAt    time.Time `json:"-"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 // NodeRow 映射 kg_node 表。
 type NodeRow struct {
-	ID                int64    `json:"-"`
-	GraphID           int64    `json:"-"`
-	NodeID            string   `json:"nodeId"`
-	Label             string   `json:"label"`
-	Type              string   `json:"type"`
-	ChapterID         *string  `json:"chapterId,omitempty"`
-	Summary           string   `json:"summary,omitempty"`
-	PropertiesJSON    []byte   `json:"-"`
-	PrerequisitesJSON []byte   `json:"-"`
-	RelatedJSON       []byte   `json:"-"`
-	AppliesToJSON     []byte   `json:"-"`
-	TargetsJSON       []byte   `json:"-"`
-	SortOrder         int      `json:"-"`
+	ID                int64   `json:"-"`
+	GraphID           int64   `json:"-"`
+	NodeID            string  `json:"nodeId"`
+	Label             string  `json:"label"`
+	Type              string  `json:"type"`
+	ChapterID         *string `json:"chapterId,omitempty"`
+	Summary           string  `json:"summary,omitempty"`
+	PropertiesJSON    []byte  `json:"-"`
+	PrerequisitesJSON []byte  `json:"-"`
+	RelatedJSON       []byte  `json:"-"`
+	AppliesToJSON     []byte  `json:"-"`
+	TargetsJSON       []byte  `json:"-"`
+	SortOrder         int     `json:"-"`
 }
 
 // RelationRow 映射 kg_relation 表。
 type RelationRow struct {
-	ID            int64    `json:"-"`
-	GraphID       int64    `json:"-"`
-	RelationID    string   `json:"relationId"`
-	Source        string   `json:"source"`
-	Target        string   `json:"target"`
-	Type          string   `json:"type"`
-	PropertiesJSON []byte  `json:"-"`
+	ID             int64  `json:"-"`
+	GraphID        int64  `json:"-"`
+	RelationID     string `json:"relationId"`
+	Source         string `json:"source"`
+	Target         string `json:"target"`
+	Type           string `json:"type"`
+	PropertiesJSON []byte `json:"-"`
 }
 
 // ---- 辅助类型 ----
